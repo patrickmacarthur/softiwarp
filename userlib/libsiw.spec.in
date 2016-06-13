@@ -8,7 +8,7 @@ Summary: Software iWARP user Lib
 Group: System Environment/Libraries
 License: GPL/BSD
 Url: https://github.com/zrlio/softiwarp
-Source: https://github.com/zrlio/softiwarp/tree/master/userlib
+Source: %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires: libibverbs-devel
