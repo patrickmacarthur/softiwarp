@@ -45,7 +45,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root,-)
 %{_libdir}/libsiw*.so
-%config %{_sysconfdir}/libibverbs.d/libsiw.driver
+%config %{_sysconfdir}/libibverbs.d/siw.driver
 
 %files devel
 %defattr(-,root,root,-)
