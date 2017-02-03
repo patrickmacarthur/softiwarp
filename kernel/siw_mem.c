@@ -47,6 +47,22 @@
 #include "siw.h"
 #include "siw_debug.h"
 
+static long siw_get_user_pages(unsigned long start, unsigned long nr_pages,
+				unsigned int gup_flags, struct page **pages,
+				struct vm_area_struct **vmas)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+	return get_user_pages(start, nr_pages, gup_flags, pages, vmas);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
+	return get_user_pages(start, nr_pages, gup_flags & FOLL_WRITE,
+			      gup_flags & FOLL_FORCE, pages, vmas);
+#else
+	return get_user_pages(current, current->mm, start, nr_pages,
+			      gup_flags & FOLL_WRITE, gup_flags & FOLL_FORCE,
+			      pages, vmas);
+#endif
+}
+
 static void siw_umem_update_stats(struct work_struct *work)
 {
 	struct siw_umem *umem = container_of(work, struct siw_umem, work);
@@ -159,9 +175,9 @@ struct siw_umem *siw_umem_get(u64 start, u64 len)
 		got = 0;
 		while (nents) {
 			struct page **plist = &umem->page_chunk[i].p[got];
-			rv = get_user_pages(current, current->mm,
-					    first_page_va, nents, 1, 1, plist,
-					    NULL);
+			rv = siw_get_user_pages(first_page_va, nents,
+						FOLL_WRITE|FOLL_FORCE, plist,
+						NULL);
 			if (rv < 0 )
 				goto out;
 
