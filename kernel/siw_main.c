@@ -442,6 +442,9 @@ static struct siw_dev *siw_device_create(struct net_device *netdev)
 #endif
 	ofa_dev->reg_user_mr = siw_reg_user_mr;
 	ofa_dev->dereg_mr = siw_dereg_mr;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0) && !defined(IS_RH_7_2)
+	ofa_dev->bind_mw = NULL;
+#endif
 	ofa_dev->alloc_mw = NULL;
 	ofa_dev->dealloc_mw = NULL;
 
