@@ -62,6 +62,9 @@
 #if RHEL_MINOR >= 2
 #define IS_RH_7_2
 #endif
+#if RHEL_MINOR >= 3
+#define IS_RH_7_3
+#endif
 #endif /* defined(RHEL_MAJOR) && RHEL_MAJOR == 7 */
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 2, 0)

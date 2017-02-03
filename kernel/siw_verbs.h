@@ -50,6 +50,12 @@
 #include "siw_cm.h"
 
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0) || defined(IS_RH_7_3)
+#define RDMA_WR(wr) ((struct ib_rdma_wr *)(wr))
+#else
+#define RDMA_WR(wr) (&(wr)->wr.rdma)
+#endif
+
 extern struct ib_ucontext *siw_alloc_ucontext(struct ib_device *,
 					      struct ib_udata *);
 extern int siw_dealloc_ucontext(struct ib_ucontext *);
