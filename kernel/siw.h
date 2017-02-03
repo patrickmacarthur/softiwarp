@@ -56,6 +56,9 @@
 #include "iwarp.h"
 
 #if defined(RHEL_MAJOR) && RHEL_MAJOR == 7
+#if RHEL_MINOR >= 1
+#define IS_RH_7_1
+#endif
 #if RHEL_MINOR >= 2
 #define IS_RH_7_2
 #endif

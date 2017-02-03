@@ -259,7 +259,7 @@ static void siw_dma_unmap_sg(struct ib_device *dev, struct scatterlist *sgl,
 	/* NOP */
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0) && !(defined(IS_RH_7_2))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0) && !(defined(IS_RH_7_1))
 static u64 siw_dma_address(struct ib_device *dev, struct scatterlist *sg)
 {
 	u64 kva = (u64) page_address(sg_page(sg));
@@ -319,7 +319,7 @@ struct ib_dma_mapping_ops siw_dma_mapping_ops = {
 	.unmap_page		= siw_dma_unmap_page,
 	.map_sg			= siw_dma_map_sg,
 	.unmap_sg		= siw_dma_unmap_sg,
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0) && !(defined(IS_RH_7_2))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0) && !(defined(IS_RH_7_1))
 	.dma_address		= siw_dma_address,
 	.dma_len		= siw_dma_len,
 #endif
