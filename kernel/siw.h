@@ -64,6 +64,10 @@
 #endif
 #endif /* defined(RHEL_MAJOR) && RHEL_MAJOR == 7 */
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 2, 0)
+#define smp_store_mb(x, y) set_mb((x), (y))
+#endif
+
 #define _load_shared(a)		(*(volatile typeof(a) *)&(a))
 
 enum siw_if_type {

@@ -1470,9 +1470,9 @@ int siw_req_notify_cq(struct ib_cq *ofa_cq, enum ib_cq_notify_flags flags)
 	dprint(DBG_EH, "(CQ%d:) flags: 0x%8x\n", OBJ_ID(cq), flags);
 
 	if ((flags & IB_CQ_SOLICITED_MASK) == IB_CQ_SOLICITED)
-		set_mb(*cq->notify, SIW_NOTIFY_SOLICITED);
+		smp_store_mb(*cq->notify, SIW_NOTIFY_SOLICITED);
 	else
-		set_mb(*cq->notify, SIW_NOTIFY_ALL);
+		smp_store_mb(*cq->notify, SIW_NOTIFY_ALL);
 
 	/* TODO
 	if (flags & IB_CQ_REPORT_MISSED_EVENTS)

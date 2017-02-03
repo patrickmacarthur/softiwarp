@@ -410,7 +410,7 @@ static struct siw_wqe *siw_rqe_get(struct siw_qp *qp)
 				wqe->mem[i].obj = NULL;
 				i++;
 			}
-			set_mb(rqe->flags, 0);	/* can be re-used by appl */
+			smp_store_mb(rqe->flags, 0);	/* can be re-used by appl */
 		} else {
 			pr_info("RQE: too many SGE's: %d\n", rqe->num_sge);
 			goto out;
@@ -702,7 +702,7 @@ static int siw_init_rresp(struct siw_qp *qp, struct siw_iwarp_rx *rctx)
 		resp->rkey = rkey;
 		resp->num_sge = length ? 1 : 0;
 
-		set_mb(resp->flags, SIW_WQE_VALID);
+		smp_store_mb(resp->flags, SIW_WQE_VALID);
 	} else {
 		dprint(DBG_RX|DBG_ON, ": QP[%d]: IRQ %d exceeded %d!\n",
 			QP_ID(qp), qp->irq_put % qp->attrs.irq_size,
@@ -1049,7 +1049,7 @@ static void siw_check_tx_fence(struct siw_qp *qp)
 
 	if (qp->tx_ctx.orq_fence == 0) {
 		rreq = &qp->orq[qp->orq_get % qp->attrs.orq_size];
-		set_mb(rreq->flags, 0); /* One new free ORQ entry */
+		smp_store_mb(rreq->flags, 0); /* One new free ORQ entry */
 	} else {
 		if (unlikely(tx_waiting->wr_status != SR_WR_QUEUED)) {
 			pr_warn("QP[%d]: Resume from fence: status %d wrong\n",
