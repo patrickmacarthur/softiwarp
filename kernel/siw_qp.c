@@ -43,6 +43,7 @@
 #include <linux/file.h>
 #include <linux/scatterlist.h>
 #include <linux/highmem.h>
+#include <linux/vmalloc.h>
 #include <net/sock.h>
 #include <net/tcp_states.h>
 #include <net/tcp.h>
