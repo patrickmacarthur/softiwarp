@@ -67,6 +67,12 @@
 #endif
 #endif /* defined(RHEL_MAJOR) && RHEL_MAJOR == 7 */
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
+typedef struct dma_attrs *dma_attrs_t;
+#else
+typedef unsigned long dma_attrs_t;
+#endif
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
 #include <crypto/hash.h>
 typedef struct shash_desc hash_desc_t;
