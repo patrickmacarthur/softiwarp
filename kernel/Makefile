@@ -1,4 +1,5 @@
 LINUX_SRC_PATH = /lib/modules/$(shell uname -r)/build
+INSTALL_HDR_PATH := /usr
 
 #
 ## If building against OFED, include the OFED headers first.
@@ -11,8 +12,14 @@ endif
 
 default: modules
 
-install: modules
-	@${MAKE} -C $(LINUX_SRC_PATH) M=`pwd` modules_install 
+modules_install: modules
+	@${MAKE} -C $(LINUX_SRC_PATH) M=`pwd` modules_install
+
+headers_install: modules
+	install -d -m755 $(INSTALL_HDR_PATH)/include/rdma
+	install -m644 ../common/siw_user.h $(INSTALL_HDR_PATH)/include/rdma/siw-abi.h
+
+install: modules_install
 	
 modules: 
 	@${MAKE} -C $(LINUX_SRC_PATH) M=`pwd` modules 
