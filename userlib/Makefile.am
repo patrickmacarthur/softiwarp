@@ -18,7 +18,7 @@ src_libsiw_la_LDFLAGS = -avoid-version -release @IBV_DEVICE_LIBRARY_EXTENSION@ \
 siwconfdir = $(sysconfdir)/libibverbs.d
 siwconf_DATA = siw.driver
 
-EXTRA_DIST = src/siw.h src/siw_abi.h src/siw.map libsiw.spec.in \
+EXTRA_DIST = src/siw.h src/siw_abi.h libsiw.spec.in \
 	siw.driver
 
 dist-hook: libsiw.spec

@@ -1,12 +1,12 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.57)
-AC_INIT(libsiw, 0.9, bmt@zurich.ibm.com)
+AC_PREREQ([2.63])
+AC_INIT([libsiw],[0.9],[bmt@zurich.ibm.com])
 AC_CONFIG_SRCDIR([src/siw.h])
 AC_CONFIG_AUX_DIR(config)
 AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(libsiw, 0.9)
-AM_PROG_LIBTOOL
+AM_INIT_AUTOMAKE([1.11 foreign subdir-objects -Wall])
+LT_INIT
 
 AC_ARG_ENABLE(libcheck, [  --disable-libcheck      do not test for presence of ib libraries],
 	[       if test x$enableval = xno ; then
