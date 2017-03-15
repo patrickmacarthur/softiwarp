@@ -55,6 +55,39 @@
 #include <siw_user.h>
 #include "iwarp.h"
 
+#if defined(RHEL_MAJOR) && RHEL_MAJOR == 7
+#if RHEL_MINOR >= 1
+#define IS_RH_7_1
+#endif
+#if RHEL_MINOR >= 2
+#define IS_RH_7_2
+#endif
+#if RHEL_MINOR >= 3
+#define IS_RH_7_3
+#endif
+#endif /* defined(RHEL_MAJOR) && RHEL_MAJOR == 7 */
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
+typedef struct dma_attrs *dma_attrs_t;
+#else
+typedef unsigned long dma_attrs_t;
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
+#include <crypto/hash.h>
+typedef struct shash_desc hash_desc_t;
+#else
+typedef struct hash_desc hash_desc_t;
+#define crypto_alloc_shash crypto_alloc_hash
+#define crypto_free_shash crypto_free_hash
+#define crypto_shash_init crypto_hash_init
+#define crypto_shash_final crypto_hash_final
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 2, 0)
+#define smp_store_mb(x, y) set_mb((x), (y))
+#endif
+
 #define _load_shared(a)		(*(volatile typeof(a) *)&(a))
 
 enum siw_if_type {
@@ -416,7 +449,7 @@ struct siw_iwarp_rx {
 	 */
 	struct siw_wqe		wqe_active;
 
-	struct hash_desc	mpa_crc_hd;
+	hash_desc_t		mpa_crc_hd;
 	/*
 	 * Next expected DDP MSN for each QN +
 	 * expected steering tag +
@@ -516,7 +549,7 @@ struct siw_iwarp_tx {
 	
 	int			bytes_unsent;	/* ddp payload bytes */
 
-	struct hash_desc	mpa_crc_hd;
+	hash_desc_t		mpa_crc_hd;
 
 	atomic_t		in_use;		/* tx currently under way */
 
@@ -742,8 +775,8 @@ int siw_tcp_rx_data(read_descriptor_t *rd_desc, struct sk_buff *skb,
 		    unsigned int off, size_t len);
 
 /* MPA utilities */
-int siw_crc_array(struct hash_desc *, u8 *, size_t);
-int siw_crc_page(struct hash_desc *, struct page *, int, int);
+int siw_crc_array(hash_desc_t *, u8 *, size_t);
+int siw_crc_page(hash_desc_t *, struct page *, int, int);
 
 
 /* Varia */

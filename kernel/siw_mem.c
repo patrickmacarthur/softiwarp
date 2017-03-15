@@ -47,6 +47,22 @@
 #include "siw.h"
 #include "siw_debug.h"
 
+static long siw_get_user_pages(unsigned long start, unsigned long nr_pages,
+				unsigned int gup_flags, struct page **pages,
+				struct vm_area_struct **vmas)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+	return get_user_pages(start, nr_pages, gup_flags, pages, vmas);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
+	return get_user_pages(start, nr_pages, gup_flags & FOLL_WRITE,
+			      gup_flags & FOLL_FORCE, pages, vmas);
+#else
+	return get_user_pages(current, current->mm, start, nr_pages,
+			      gup_flags & FOLL_WRITE, gup_flags & FOLL_FORCE,
+			      pages, vmas);
+#endif
+}
+
 static void siw_umem_update_stats(struct work_struct *work)
 {
 	struct siw_umem *umem = container_of(work, struct siw_umem, work);
@@ -159,9 +175,9 @@ struct siw_umem *siw_umem_get(u64 start, u64 len)
 		got = 0;
 		while (nents) {
 			struct page **plist = &umem->page_chunk[i].p[got];
-			rv = get_user_pages(current, current->mm,
-					    first_page_va, nents, 1, 1, plist,
-					    NULL);
+			rv = siw_get_user_pages(first_page_va, nents,
+						FOLL_WRITE|FOLL_FORCE, plist,
+						NULL);
 			if (rv < 0 )
 				goto out;
 
@@ -259,7 +275,7 @@ static void siw_dma_unmap_sg(struct ib_device *dev, struct scatterlist *sgl,
 	/* NOP */
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0) && !(defined(IS_RH_7_2))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0) && !(defined(IS_RH_7_1))
 static u64 siw_dma_address(struct ib_device *dev, struct scatterlist *sg)
 {
 	u64 kva = (u64) page_address(sg_page(sg));
@@ -319,7 +335,7 @@ struct ib_dma_mapping_ops siw_dma_mapping_ops = {
 	.unmap_page		= siw_dma_unmap_page,
 	.map_sg			= siw_dma_map_sg,
 	.unmap_sg		= siw_dma_unmap_sg,
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0) && !(defined(IS_RH_7_2))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0) && !(defined(IS_RH_7_1))
 	.dma_address		= siw_dma_address,
 	.dma_len		= siw_dma_len,
 #endif
@@ -344,14 +360,14 @@ static void siw_dma_generic_free_coherent(struct device *dev, size_t size,
 #else
 static void *siw_dma_generic_alloc(struct device *dev, size_t size,
 				   dma_addr_t *dma_handle, gfp_t gfp,
-				   struct dma_attrs *attrs)
+				   dma_attrs_t attrs)
 {
 	return siw_dma_alloc_coherent(NULL, size, dma_handle, gfp);
 }
 
 static void siw_dma_generic_free(struct device *dev, size_t size,
 				 void *vaddr, dma_addr_t dma_handle,
-				 struct dma_attrs *attrs)
+				 dma_attrs_t attrs)
 {
 	siw_dma_free_coherent(NULL, size, vaddr, dma_handle);
 }
@@ -362,7 +378,7 @@ static dma_addr_t siw_dma_generic_map_page(struct device *dev,
 					   unsigned long offset,
 					   size_t size,
 					   enum dma_data_direction dir,
-					   struct dma_attrs *attrs)
+					   dma_attrs_t attrs)
 {
 	return siw_dma_map_page(NULL, page, offset, size, dir);
 }
@@ -371,14 +387,14 @@ static void siw_dma_generic_unmap_page(struct device *dev,
 				       dma_addr_t handle,
 				       size_t size,
 				       enum dma_data_direction dir,
-				       struct dma_attrs *attrs)
+				       dma_attrs_t attrs)
 {
 	siw_dma_unmap_page(NULL, handle, size, dir);
 }
 
 static int siw_dma_generic_map_sg(struct device *dev, struct scatterlist *sg,
 				  int nents, enum dma_data_direction dir,
-				  struct dma_attrs *attrs)
+				  dma_attrs_t attrs)
 {
 	return siw_dma_map_sg(NULL, sg, nents, dir);
 }
@@ -387,7 +403,7 @@ static void siw_dma_generic_unmap_sg(struct device *dev,
 				    struct scatterlist *sg,
 				    int nents,
 				    enum dma_data_direction dir,
-				    struct dma_attrs *attrs)
+				    dma_attrs_t attrs)
 {
 	siw_dma_unmap_sg(NULL, sg, nents, dir);
 }

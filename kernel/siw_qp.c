@@ -43,6 +43,7 @@
 #include <linux/file.h>
 #include <linux/scatterlist.h>
 #include <linux/highmem.h>
+#include <linux/vmalloc.h>
 #include <net/sock.h>
 #include <net/tcp_states.h>
 #include <net/tcp.h>
@@ -350,17 +351,17 @@ static int siw_qp_enable_crc(struct siw_qp *qp)
 	struct siw_iwarp_tx *c_tx = &qp->tx_ctx;
 	int rv = 0;
 
-	c_tx->mpa_crc_hd.tfm = crypto_alloc_hash("crc32c", 0,
+	c_tx->mpa_crc_hd.tfm = crypto_alloc_shash("crc32c", 0,
 						 CRYPTO_ALG_ASYNC);
 	if (IS_ERR(c_tx->mpa_crc_hd.tfm)) {
 		rv = -PTR_ERR(c_tx->mpa_crc_hd.tfm);
 		goto out;
 	}
-	c_rx->mpa_crc_hd.tfm = crypto_alloc_hash("crc32c", 0,
+	c_rx->mpa_crc_hd.tfm = crypto_alloc_shash("crc32c", 0,
 						 CRYPTO_ALG_ASYNC);
 	if (IS_ERR(c_rx->mpa_crc_hd.tfm)) {
 		rv = -PTR_ERR(c_rx->mpa_crc_hd.tfm);
-		crypto_free_hash(c_tx->mpa_crc_hd.tfm);
+		crypto_free_shash(c_tx->mpa_crc_hd.tfm);
 	}
 out:
 	if (rv)
@@ -813,7 +814,7 @@ int siw_activate_tx(struct siw_qp *qp)
 
 		wqe->processed = 0;
 		qp->irq_get++;
-		set_mb(sqe->flags, 0);
+		smp_store_mb(sqe->flags, 0);
 
 		goto out;
 	} 
@@ -888,7 +889,7 @@ int siw_activate_tx(struct siw_qp *qp)
 		}
 
 		/* Clear SQE, can be re-used by application */
-		set_mb(sqe->flags, 0);
+		smp_store_mb(sqe->flags, 0);
 		qp->sq_get++;
 	} else
 		rv = 0;
@@ -901,16 +902,24 @@ out:
 	return rv;
 }
 
-int siw_crc_array(struct hash_desc *desc, u8 *start, size_t len)
+int siw_crc_array(hash_desc_t *desc, u8 *start, size_t len)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
+	return crypto_shash_update(desc, start, len);
+#else
 	struct scatterlist sg;
 
 	sg_init_one(&sg, start, len);
 	return crypto_hash_update(desc, &sg, len);
+#endif
 }
 
-int siw_crc_page(struct hash_desc *desc, struct page *p, int off, int len)
+int siw_crc_page(hash_desc_t *desc, struct page *p, int off, int len)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
+	return crypto_shash_update(desc, phys_to_virt(page_to_phys(p)) + off,
+				  len);
+#else
 	int rv;
 	struct scatterlist t_sg;
 
@@ -919,6 +928,7 @@ int siw_crc_page(struct hash_desc *desc, struct page *p, int off, int len)
 	rv = crypto_hash_update(desc, &t_sg, len);
 
 	return rv;
+#endif
 }
 
 static void siw_cq_notify(struct siw_cq *cq, u32 flags)
@@ -933,7 +943,7 @@ static void siw_cq_notify(struct siw_cq *cq, u32 flags)
 	if ((cq_notify & SIW_NOTIFY_NEXT_COMPLETION) || 
 	    ((cq_notify & SIW_NOTIFY_SOLICITED) &&
 	     (flags & SIW_WQE_SOLICITED))) {
-		set_mb(*cq->notify, SIW_NOTIFY_NOT);
+		smp_store_mb(*cq->notify, SIW_NOTIFY_NOT);
 		(*cq->ofa_cq.comp_handler)(&cq->ofa_cq, cq->ofa_cq.cq_context);
 	}
 }
@@ -968,8 +978,8 @@ int siw_sqe_complete(struct siw_qp *qp, struct siw_sqe *sqe, u32 bytes,
 			} else
 				cqe->qp_id = QP_ID(qp);
 
-			set_mb(cqe->flags, SIW_WQE_VALID);
-			set_mb(sqe->flags, 0);
+			smp_store_mb(cqe->flags, SIW_WQE_VALID);
+			smp_store_mb(sqe->flags, 0);
 
 			cq->cq_put++;
 			unlock_cq_rxsave(cq, flags);
@@ -980,7 +990,7 @@ int siw_sqe_complete(struct siw_qp *qp, struct siw_sqe *sqe, u32 bytes,
 			siw_cq_event(cq, IB_EVENT_CQ_ERR);
 		}
 	} else
-		set_mb(sqe->flags, 0);
+		smp_store_mb(sqe->flags, 0);
 
 	return rv;
 }
@@ -1015,8 +1025,8 @@ int siw_rqe_complete(struct siw_qp *qp, struct siw_rqe *rqe, u32 bytes,
 			} else
 				cqe->qp_id = QP_ID(qp);
 
-			set_mb(cqe->flags, SIW_WQE_VALID);
-			set_mb(rqe->flags, 0);
+			smp_store_mb(cqe->flags, SIW_WQE_VALID);
+			smp_store_mb(rqe->flags, 0);
 
 			cq->cq_put++;
 			unlock_cq_rxsave(cq, flags);
@@ -1027,7 +1037,7 @@ int siw_rqe_complete(struct siw_qp *qp, struct siw_rqe *rqe, u32 bytes,
 			siw_cq_event(cq, IB_EVENT_CQ_ERR);
 		}
 	} else
-		set_mb(rqe->flags, 0);
+		smp_store_mb(rqe->flags, 0);
 
 	return rv;
 }

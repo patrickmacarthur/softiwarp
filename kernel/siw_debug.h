@@ -120,6 +120,12 @@ extern void siw_print_qp_attr_mask(enum ib_qp_attr_mask, char *);
 
 #if DPRINT_MASK > 0
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0) && IS_ENABLED(CONFIG_THREAD_INFO_IN_TASK)
+#define CURRENT_CPU (current->cpu)
+#else
+#define CURRENT_CPU (current_thread_info()->cpu)
+#endif
+
 /**
  * dprint - Selective debug print for process, SoftIRQ or HardIRQ context
  *
@@ -139,11 +145,11 @@ extern void siw_print_qp_attr_mask(enum ib_qp_attr_mask, char *);
 			if (!in_interrupt())				\
 				pr_info("(%5d/%1d) %s" fmt,		\
 					current->pid,			\
-					current_thread_info()->cpu,	\
+					CURRENT_CPU,			\
 					__func__, ## args);		\
 			else						\
 				pr_info("( irq /%1d) %s" fmt,		\
-					current_thread_info()->cpu,	\
+					CURRENT_CPU,			\
 					__func__, ## args);		\
 		}							\
 	} while (0)
